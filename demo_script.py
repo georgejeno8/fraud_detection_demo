@@ -11,6 +11,8 @@ from torch.nn import Sequential, Linear, ReLU, Sigmoid, BCELoss
 from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
 
+os.makedirs('/app/fraud_detection_demo/logs')
+
 from stadle import AdminAgent, BaseModelConvFormat, BasicClient
 from stadle.lib.entity.model import BaseModel
 
@@ -18,9 +20,6 @@ from model import *
 
 # import nest_asyncio
 # nest_asyncio.apply()
-
-
-os.makedirs('/app/fraud_detection_demo/logs')
 
 st.title('STADLE Fraud Detection Demo')
 

@@ -20,6 +20,8 @@ from model import *
 # nest_asyncio.apply()
 
 
+os.makedirs('/app/fraud_detection_demo/logs')
+
 st.title('STADLE Fraud Detection Demo')
 
 rows = st.tabs(['Load Data', 'Local Training', 'STADLE Training', 'Validate Model'])

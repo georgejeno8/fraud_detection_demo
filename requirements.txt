@@ -4,5 +4,7 @@ numpy
 nest-asyncio
 pandas
 ipywidgets
+matplotlib
+scikit-learn
 stadle_client
 streamlit

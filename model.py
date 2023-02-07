@@ -46,23 +46,31 @@ def train_model(model, dataloader, epochs):
 
 
 def test_model(model, dataloader):
-    correct_preds = 0.0
-    total_preds = 0.0
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
 
     preds = []
+    real = []
     pred_conf = []
 
     for i, (X,y) in enumerate(dataloader):
         res = model(X)
 
         preds.extend(torch.flatten(res > 0.5).tolist())
+        real.extend(torch.flatten(y).tolist())
         pred_conf.extend(torch.flatten(res).tolist())
 
         y_pred = (res > 0.5).type(torch.FloatTensor)
-        correct_preds += torch.sum(y_pred == y).item()
-        total_preds += len(y)
 
-    return correct_preds/total_preds, preds, pred_conf
+        # y == True only for readability, I swear I know how booleans work
+        tp += torch.sum((y_pred == y) & (y == True)).item()
+        tn += torch.sum((y_pred == y) & (y == False)).item()
+        fp += torch.sum((y_pred != y) & (y == True)).item()
+        fn += torch.sum((y_pred != y) & (y == False)).item()
+
+    return (tp, tn, fp, fn), preds, real, pred_conf
 
 
 def process_df(csv_path):
@@ -92,33 +100,33 @@ from time import time
 
 fd_bm = BaseModel("Fraud-Detection-Model", get_model(), BaseModelConvFormat.pytorch_format)
 
-def on_start_fl_click(agg_addr):
-    global dataloader
+# def on_start_fl_click(agg_addr):
+#     global dataloader
 
-    # Upload base model
-    admin_agent = AdminAgent(aggregator_ip_address=agg_addr, base_model=fd_bm)
-    admin_agent.preload()
-    admin_agent.initialize()
+#     # Upload base model
+#     admin_agent = AdminAgent(aggregator_ip_address=agg_addr, base_model=fd_bm)
+#     admin_agent.preload()
+#     admin_agent.initialize()
 
-    # Start FL
-    stadle_client = BasicClient(agent_name=f'agent_{time()}')
+#     # Start FL
+#     stadle_client = BasicClient(agent_name=f'agent_{time()}')
 
-    model = get_model()
-    stadle_client.set_bm_obj(model)
+#     model = get_model()
+#     stadle_client.set_bm_obj(model)
 
-    fl_progress.style={'bar_color': 'blue', 'description_width': 'initial'}
+#     fl_progress.style={'bar_color': 'blue', 'description_width': 'initial'}
 
-    for rnd in range(round_lim.value):
-        fl_progress.description='Training'
-        fl_progress.value=rnd+1
-        model, loss = train_model(model, dataloader, 2)
-        fl_progress.description='Aggregating'
-        stadle_client.send_trained_model(model, perf_values={'loss_training':loss})
-        fl_sd = stadle_client.wait_for_sg_model().state_dict()
-        model.load_state_dict(fl_sd)
+#     for rnd in range(round_lim.value):
+#         fl_progress.description='Training'
+#         fl_progress.value=rnd+1
+#         model, loss = train_model(model, dataloader, 2)
+#         fl_progress.description='Aggregating'
+#         stadle_client.send_trained_model(model, perf_values={'loss_training':loss})
+#         fl_sd = stadle_client.wait_for_sg_model().state_dict()
+#         model.load_state_dict(fl_sd)
 
-    fl_progress.description='FL complete'
-    fl_progress.style={'bar_color': 'green', 'description_width': 'initial'}
+#     fl_progress.description='FL complete'
+#     fl_progress.style={'bar_color': 'green', 'description_width': 'initial'}
 
-    trained_models.append(('FL_model', model))
-    inf_model_select.options = [t for t in trained_models]
+#     trained_models.append(('FL_model', model))
+#     inf_model_select.options = [t for t in trained_models]

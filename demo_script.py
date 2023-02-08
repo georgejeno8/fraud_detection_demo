@@ -16,8 +16,8 @@ from sklearn.metrics import ConfusionMatrixDisplay
 
 import matplotlib.pyplot as plt
 
-if (not os.path.exists('/app/fraud_detection_demo/logs')):
-    os.makedirs('/app/fraud_detection_demo/logs')
+# if (not os.path.exists('/app/fraud_detection_demo/logs')):
+#     os.makedirs('/app/fraud_detection_demo/logs')
 
 from stadle import AdminAgent, BaseModelConvFormat, BasicClient
 from stadle.lib.entity.model import BaseModel
@@ -141,8 +141,10 @@ def on_train_click():
 
     model = get_model()
 
+    optimizer = Adam(model.parameters(), lr=1e-3)
+
     for epoch in range(num_epoch_input):
-        model, loss = train_model(model, dataloader, 1)
+        model, loss, optimizer = train_model(model, dataloader, optimizer, 1)
         lt_container.text(f'Epoch {epoch+1}/{num_epoch_input}' + '\n' + sd2str(model.state_dict()))
 
     st.session_state.lt_text = 'Training completed.\n' + sd2str(model.state_dict())
@@ -178,16 +180,18 @@ def on_fl_click(agg_addr, rounds):
 
     with rows[2]:
         ft_container.text('Starting agent...')
-        stadle_client = BasicClient(aggregator_ip_address=agg_addr, agent_name=f'agent_{get_timestamp()}')
+        stadle_client = BasicClient(aggregator_ip_address=agg_addr, agent_name=f'agent_{get_timestamp()}', simulation_flag=True)
         model = get_model()
         stadle_client.set_bm_obj(model)
         sleep(15)
+
+        optimizer = Adam(model.parameters(), lr=1e-3)
 
         start_sd = stadle_client.wait_for_sg_model().state_dict()
         model.load_state_dict(start_sd)
 
         for rnd in range(rounds):
-            model, loss = train_model(model, dataloader, 2)
+            model, loss, optimizer = train_model(model, dataloader, optimizer, 3)
             ft_container.text(f'Round {rnd+1}/{rounds} - Waiting for aggregation...\nModel after local training:\n' + sd2str(model.state_dict()))
             ret = stadle_client.send_trained_model(model, perf_values={'performance':loss})
 

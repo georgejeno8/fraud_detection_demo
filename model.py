@@ -26,9 +26,8 @@ get_model = lambda : Sequential(
 )
 
 
-def train_model(model, dataloader, epochs):
+def train_model(model, dataloader, optimizer, epochs):
     criterion = BCELoss()
-    optimizer = Adam(model.parameters(), lr=1e-3)
 
     cum_loss = 0.0
 
@@ -42,7 +41,7 @@ def train_model(model, dataloader, epochs):
             cum_loss += loss.item()
         cum_loss /= len(dataloader)
 
-    return model, cum_loss
+    return model, cum_loss, optimizer
 
 
 def test_model(model, dataloader):
@@ -80,9 +79,11 @@ def process_df(csv_path):
     df['is_withdrawal'] = df['transaction_type'].map(lambda x: (True if x=='withdrawal' else False))
     df['is_payment'] = df['transaction_type'].map(lambda x: (True if x=='payment' else False))
     df['transaction_amount'] /= 1000
-    df = df.drop(['balance', 'transaction_id', 'account_id', 'transaction_time', 'transaction_type', 'location'], axis=1)
+    df['source_conf'] = df['source_conf'].map(lambda x: (0.0 if x=='N/A' else x))
+    df['source_flag'] = (df['source_conf'] < 0.80) & df['is_payment']
+    df = df.drop(['balance', 'transaction_id', 'account_id', 'transaction_time', 'transaction_type', 'location', 'source_conf'], axis=1)
     
-    X = df[['transaction_amount', 'is_int', 'is_withdrawal', 'is_payment']]
+    X = df[['transaction_amount', 'is_int', 'is_withdrawal', 'source_flag']]
     y = df[['is_fraud']]
 
     ds = FraudDataset(X,y)
